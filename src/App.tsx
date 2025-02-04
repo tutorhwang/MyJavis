@@ -307,14 +307,13 @@ function Background() {
 
 function Home() {
   const [message, setMessage] = useState("");
-  const [isListening, setIsListening] = useState(false);
-  const [chatHistory, setChatHistory] = useState<Array<{role: string, content: string}>>([]);
+  const [chatHistory, setChatHistory] = useState<Array<{ role: string; content: string }>>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [userName, setUserName] = useState<string>("");
-  const [isNameSet, setIsNameSet] = useState(false);
   const [microphoneStatus, setMicrophoneStatus] = useState<'ready' | 'listening' | 'error' | 'not-available'>('ready');
   const [micError, setMicError] = useState<string>('');
+  const [userName, setUserName] = useState<string>("");
+  const [isNameSet, setIsNameSet] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const speakMessage = (text: string) => {
