@@ -317,9 +317,6 @@ function Home() {
   const [micError, setMicError] = useState<string>('');
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  // ElevenLabs 음성 ID (원하는 음성으로 변경 가능)
-  const VOICE_ID = "pNInz6obpgDQGcFmaJgB"; // 예시 ID, 실제 사용할 음성 ID로 변경 필요
-
   const speakMessage = (text: string) => {
     if (isSpeaking) {
       window.speechSynthesis.cancel();
