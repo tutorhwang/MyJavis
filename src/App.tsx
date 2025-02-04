@@ -496,17 +496,21 @@ function Home() {
     if (!messageToSend.trim()) return;
 
     setMessage("");
-    
-    // 사용자 메시지를 채팅 기록에 추가
     setChatHistory(prev => [...prev, { role: "user", content: messageToSend }]);
     setIsLoading(true);
 
     try {
+      // API 키 확인
+      const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+      if (!apiKey || apiKey === 'your_api_key_here') {
+        throw new Error('API_KEY_NOT_FOUND');
+      }
+
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`
+          'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
           model: "gpt-3.5-turbo",
@@ -524,36 +528,59 @@ function Home() {
             },
             ...chatHistory,
             { role: "user", content: messageToSend }
-          ]
+          ],
+          temperature: 0.7,
+          max_tokens: 1000,
+          top_p: 1,
+          frequency_penalty: 0,
+          presence_penalty: 0
         })
       });
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || 'API_ERROR');
+      }
+
       const data = await response.json();
-      const javisResponse = data.choices[0].message.content;
       
-      // JAVIS의 응답을 채팅 기록에 추가
+      if (!data.choices?.[0]?.message?.content) {
+        throw new Error('INVALID_RESPONSE');
+      }
+
+      const javisResponse = data.choices[0].message.content;
       setChatHistory(prev => [...prev, { role: "assistant", content: javisResponse }]);
-      // 자동으로 음성 출력
       speakMessage(javisResponse);
+
     } catch (error) {
       console.error('Error:', error);
-      let errorMessage = `${userName}아, 미안해! 시스템에 문제가 생겼어.\n`;
+      let errorMessage = `${userName}아, `;
       
-      if (!import.meta.env.VITE_OPENAI_API_KEY || import.meta.env.VITE_OPENAI_API_KEY === 'your_openai_api_key_here') {
-        errorMessage += "API 키가 설정되지 않았어. 선생님께 도움을 요청해줄래?";
-      } else if (error instanceof TypeError) {
-        errorMessage += "인터넷 연결이 불안정한 것 같아. 인터넷 연결을 확인해줄래?";
+      if (error instanceof Error) {
+        switch (error.message) {
+          case 'API_KEY_NOT_FOUND':
+            errorMessage += "API 키가 설정되지 않았어. 선생님께 도움을 요청해줄래?";
+            break;
+          case 'INVALID_RESPONSE':
+            errorMessage += "자비스가 지금 잠깐 혼란스러워하고 있어. 다시 한 번 물어봐줄래?";
+            break;
+          case 'Failed to fetch':
+            errorMessage += "인터넷 연결이 불안정한 것 같아. 인터넷 연결을 확인해줄래?";
+            break;
+          default:
+            errorMessage += "미안해! 지금 시스템이 불안정해서 잠시 후에 다시 시도해보자!";
+        }
       } else {
-        errorMessage += "문제가 생겼어. 잠시 후에 다시 시도해보자!";
+        errorMessage += "알 수 없는 문제가 발생했어. 잠시 후에 다시 시도해보자!";
       }
 
       setChatHistory(prev => [...prev, { 
         role: "assistant", 
         content: errorMessage
       }]);
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   // 이름 입력 화면
